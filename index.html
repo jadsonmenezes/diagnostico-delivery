@@ -1,352 +1,308 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Diagnóstico de acesso ao delivery</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-      margin: 0;
-      padding: 16px;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background: #020617;
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      border: 1px solid #1f2937;
-    }
-    h1 {
-      font-size: 1.3rem;
-      margin-top: 0;
-      color: #38bdf8;
-    }
-    label {
-      display: block;
-      font-size: 0.9rem;
-      margin-bottom: 4px;
-    }
-    input, textarea, button {
-      width: 100%;
-      box-sizing: border-box;
-      font-size: 0.9rem;
-      border-radius: 8px;
-      border: 1px solid #374151;
-      padding: 8px;
-      background: #020617;
-      color: #e5e7eb;
-    }
-    input:focus, textarea:focus {
-      outline: 2px solid #38bdf8;
-      outline-offset: 1px;
-    }
-    button {
-      cursor: pointer;
-      margin-top: 8px;
-      background: #22c55e;
-      border-color: #16a34a;
-      font-weight: 600;
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: wait;
-    }
-    small {
-      font-size: 0.8rem;
-      color: #9ca3af;
-    }
-    .row {
-      margin-bottom: 12px;
-    }
-    .tag {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 999px;
-      font-size: 0.7rem;
-      background: #111827;
-      border: 1px solid #374151;
-      margin-right: 4px;
-      margin-bottom: 4px;
-    }
-    .footer {
-      margin-top: 12px;
-      font-size: 0.75rem;
-      color: #6b7280;
-      text-align: center;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Diagnóstico de acesso ao delivery</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    background: #0f172a;
+    color: #e5e7eb;
+    padding: 16px;
+    margin: 0;
+  }
+  .container {
+    max-width: 880px;
+    margin: auto;
+    background: #020617;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #1e293b;
+  }
+  textarea, input, button {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 8px;
+    color: #e5e7eb;
+  }
+  button {
+    background: #22c55e;
+    border-color: #16a34a;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  button:disabled{
+    opacity: .6;
+    cursor: wait;
+  }
+  label { margin-bottom: 4px; display: block; }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>Diagnóstico de acesso ao link do delivery</h1>
 
-    <div class="row">
-      <label for="targetUrl">URL da loja que deu erro</label>
-      <input id="targetUrl" type="text" placeholder="Ex: https://batataria73.goomer.app" />
-      <small>
-        Cole aqui exatamente o link que o cliente tentou abrir (sem prints).
-      </small>
-    </div>
+<div class="container">
+<h2>Diagnóstico de acesso ao delivery</h2>
 
-    <div class="row">
-      <button id="runBtn">Rodar diagnóstico</button>
-    </div>
+<label>URL da loja</label>
+<input id="urlField" type="text" placeholder="https://minha-loja.goomer.app">
 
-    <div class="row">
-      <label for="output">Resultado do teste (copie e envie via WhatsApp para a loja):</label>
-      <textarea id="output" rows="16" readonly></textarea>
-    </div>
+<button id="runBtn">Rodar diagnóstico</button>
 
-    <div class="row">
-      <button id="copyBtn">Copiar resultado</button>
-      <small id="copyStatus"></small>
-    </div>
+<label style="margin-top:12px">Resultado:</label>
+<textarea id="result" rows="20"></textarea>
+<button id="copyBtn">Copiar</button>
+<div id="copyStatus" style="font-size:.8rem; margin-top:6px"></div>
 
-    <div class="row">
-      <div class="tag">Não salva dados em servidor</div>
-      <div class="tag">Uso interno de suporte</div>
-      <div class="tag">Ajuda a identificar erros de certificado/SSL</div>
-    </div>
+</div>
 
-    <div class="footer">
-      O cliente pode apenas rodar o teste e enviar o texto gerado por WhatsApp.
-    </div>
-  </div>
+<script>
 
-  <script>
-    const runBtn = document.getElementById("runBtn");
-    const output = document.getElementById("output");
-    const targetUrlInput = document.getElementById("targetUrl");
-    const copyBtn = document.getElementById("copyBtn");
-    const copyStatus = document.getElementById("copyStatus");
+/* ============================================================
+   DETECTOR AVANÇADO DE NAVEGADOR / VERSÃO / SO
+   ============================================================ */
+function detectBrowser() {
+    const ua = navigator.userAgent;
 
-    function normalizeUrl(url) {
-      if (!url) return "";
-      url = url.trim();
-      if (!/^https?:\/\//i.test(url)) {
-        url = "https://" + url;
-      }
-      return url;
+    const browsers = [
+        { name: "Edge",  regex: /Edg\/([\d.]+)/ },
+        { name: "Chrome", regex: /Chrome\/([\d.]+)/ },
+        { name: "Firefox", regex: /Firefox\/([\d.]+)/ },
+        { name: "Safari", regex: /Version\/([\d.]+).*Safari/ },
+        { name: "Samsung Browser", regex: /SamsungBrowser\/([\d.]+)/ }
+    ];
+
+    for (const b of browsers) {
+        const match = ua.match(b.regex);
+        if (match) return `${b.name} ${match[1]}`;
     }
 
-    async function getIpInfo() {
-      const result = { ipv4: null, ipv6: null, errors: [] };
+    return "Navegador não identificado";
+}
 
-      try {
-        const r4 = await fetch("https://api.ipify.org?format=json", { cache: "no-store" });
-        const d4 = await r4.json();
-        result.ipv4 = d4.ip || null;
-      } catch (e) {
-        result.errors.push("IPv4: " + e.message);
-      }
+function detectOS() {
+    const ua = navigator.userAgent;
 
-      try {
-        const r6 = await fetch("https://api64.ipify.org?format=json", { cache: "no-store" });
-        const d6 = await r6.json();
-        result.ipv6 = d6.ip || null;
-      } catch (e) {
-        result.errors.push("IPv6: " + e.message);
-      }
+    if (/Windows NT 10/.test(ua)) return "Windows 10";
+    if (/Windows NT 11/.test(ua)) return "Windows 11";
+    if (/Mac OS X/.test(ua)) return "macOS";
+    if (/Android/.test(ua)) return "Android";
+    if (/iPhone|iPad|iPod/.test(ua)) return "iOS";
+    if (/Linux/.test(ua)) return "Linux";
 
-      return result;
-    }
+    return "Sistema operacional não identificado";
+}
 
-    async function getTimeDiff() {
-      const result = {
-        serverTime: null,
-        localTime: new Date().toISOString(),
-        diffMinutes: null,
-        warning: null,
-        error: null
-      };
+/* ============================================================
+   DETECÇÃO REAL DE TIPO DE CONEXÃO (wifi / ethernet / 4g / 5g)
+   ============================================================ */
+function detectConnectionType() {
+    const nav = navigator;
 
-      try {
-        const r = await fetch("https://worldtimeapi.org/api/ip", { cache: "no-store" });
-        const data = await r.json();
-        if (data && data.utc_datetime) {
-          const server = new Date(data.utc_datetime).getTime();
-          const local = Date.now();
-          const diff = Math.round((local - server) / 60000); // em minutos
-          result.serverTime = data.utc_datetime;
-          result.diffMinutes = diff;
-          if (Math.abs(diff) > 5) {
-            result.warning = "Diferença grande entre horário do aparelho e horário de servidor. Pode causar erro de certificado.";
-          }
-        }
-      } catch (e) {
-        result.error = e.message;
-      }
+    // Chrome desktop retorna sempre "4g"; ignoramos isso
+    const isDesktop = /Windows|Mac|Linux/i.test(nav.userAgent);
+    if (isDesktop) return "Wi-Fi / Ethernet (desktop)";
 
-      return result;
-    }
+    const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+    if (!conn) return "Não informado";
 
-    async function testUrlReachability(url) {
-      const res = {
-        url,
-        ok: false,
-        status: null,
-        durationMs: null,
-        errorMessage: null,
-        note: null
-      };
+    // Android/iOS
+    const map = {
+        "wifi": "Wi-Fi",
+        "ethernet": "Ethernet",
+        "4g": "4G",
+        "5g": "5G",
+        "3g": "3G",
+        "2g": "2G"
+    };
 
-      if (!url) {
-        res.errorMessage = "URL vazia.";
-        return res;
-      }
+    const type = conn.type || conn.effectiveType;
+    return map[type] || type || "Não identificado";
+}
 
-      const start = performance.now();
-      try {
-        // no-cors pra forçar teste de handshake mesmo sem CORS
-        const response = await fetch(url, {
-          method: "GET",
-          mode: "no-cors",
-          cache: "no-store"
+/* ============================================================
+   DETECÇÃO DE IPs (IPv4 e IPv6)
+   ============================================================ */
+async function getIPs() {
+    const result = { ipv4: null, ipv6: null };
+
+    try {
+        result.ipv4 = (await (await fetch("https://api.ipify.org?format=json")).json()).ip;
+    } catch(e){}
+
+    try {
+        result.ipv6 = (await (await fetch("https://api64.ipify.org?format=json")).json()).ip;
+    } catch(e){}
+
+    // evita falso IPv6==IPv4
+    if (result.ipv6 === result.ipv4) result.ipv6 = "não disponível";
+
+    return result;
+}
+
+/* ============================================================
+   TESTE DE TLS / HANDSHAKE via "image-ping"
+   ============================================================ */
+async function testTLS(url){
+    return new Promise(resolve => {
+        const img = new Image();
+        const start = performance.now();
+
+        img.onload = () => resolve({
+            ok: true,
+            ms: performance.now() - start
         });
-        const end = performance.now();
-        res.durationMs = Math.round(end - start);
 
-        // Em no-cors não conseguimos ler status; se não deu exception, handshake OK.
-        res.ok = true;
-        res.status = "desconhecido (no-cors)";
-        res.note = "Requisição chegou no servidor sem erro de HTTPS/SSL (handshake parece OK).";
-      } catch (e) {
-        const end = performance.now();
-        res.durationMs = Math.round(end - start);
-        res.ok = false;
-        res.errorMessage = e.message || String(e);
-        res.note = "Se o erro no navegador for ERR_SSL_PROTOCOL_ERROR, ERR_CERT ou semelhante, isso indica problema de certificado/handshake na rede ou aparelho.";
-      }
+        img.onerror = () => resolve({
+            ok: false,
+            ms: performance.now() - start
+        });
 
-      return res;
-    }
-
-    function getDeviceInfo() {
-      const nav = navigator || {};
-      const conn = nav.connection || nav.mozConnection || nav.webkitConnection || null;
-
-      return {
-        userAgent: nav.userAgent || null,
-        platform: nav.platform || null,
-        language: nav.language || null,
-        languages: nav.languages || null,
-        online: typeof nav.onLine === "boolean" ? nav.onLine : null,
-        connection: conn
-          ? {
-              effectiveType: conn.effectiveType || null,
-              rtt: conn.rtt || null,
-              downlink: conn.downlink || null,
-              saveData: conn.saveData || null
-            }
-          : null,
-        screen: {
-          width: window.screen && window.screen.width,
-          height: window.screen && window.screen.height,
-          pixelRatio: window.devicePixelRatio || 1
-        },
-        timezoneOffsetMinutes: new Date().getTimezoneOffset()
-      };
-    }
-
-    function formatResultAsText(data) {
-      // formato amigável para copiar e colar no WhatsApp
-      return [
-        "=== DIAGNÓSTICO DE ACESSO AO LINK ===",
-        "",
-        "URL testada:",
-        data.targetUrl || "não informada",
-        "",
-        "1) Informações do dispositivo:",
-        " - Navegador: " + (data.device.userAgent || "n/d"),
-        " - Plataforma: " + (data.device.platform || "n/d"),
-        " - Idioma: " + (data.device.language || "n/d"),
-        " - Online: " + (data.device.online ? "sim" : "não/indefinido"),
-        data.device.connection
-          ? " - Tipo de conexão: " + data.device.connection.effectiveType +
-            " | RTT: " + data.device.connection.rtt + "ms" +
-            " | Velocidade estimada: " + data.device.connection.downlink + "Mbps"
-          : " - Tipo de conexão: não disponível",
-        " - Tela: " + data.device.screen.width + "x" + data.device.screen.height +
-          " (pixelRatio " + data.device.screen.pixelRatio + ")",
-        "",
-        "2) IP público:",
-        " - IPv4: " + (data.ip.ipv4 || "não obtido"),
-        " - IPv6: " + (data.ip.ipv6 || "não obtido"),
-        data.ip.errors && data.ip.errors.length
-          ? " - Observações IP: " + data.ip.errors.join(" | ")
-          : "",
-        "",
-        "3) Horário do aparelho x servidor:",
-        " - Horário local: " + (data.time.localTime || "n/d"),
-        " - Horário servidor (referência): " + (data.time.serverTime || "n/d"),
-        " - Diferença (minutos): " +
-          (data.time.diffMinutes === null ? "n/d" : data.time.diffMinutes),
-        data.time.warning ? " - Aviso: " + data.time.warning : "",
-        data.time.error ? " - Erro ao consultar horário de referência: " + data.time.error : "",
-        "",
-        "4) Teste de acesso ao link:",
-        " - URL: " + (data.reach.url || "n/d"),
-        " - Sucesso na conexão (sem erro HTTPS): " + (data.reach.ok ? "SIM" : "NÃO"),
-        " - Status HTTP (se disponível): " + (data.reach.status || "n/d"),
-        " - Tempo de resposta: " + (data.reach.durationMs !== null ? data.reach.durationMs + "ms" : "n/d"),
-        data.reach.errorMessage ? " - Erro retornado para o script: " + data.reach.errorMessage : "",
-        data.reach.note ? " - Observação: " + data.reach.note : "",
-        "",
-        "=== FIM DO DIAGNÓSTICO ==="
-      ].join("\n");
-    }
-
-    async function runDiagnostic() {
-      const rawUrl = targetUrlInput.value;
-      const targetUrl = normalizeUrl(rawUrl);
-
-      runBtn.disabled = true;
-      runBtn.textContent = "Rodando testes...";
-      output.value = "Executando diagnóstico, aguarde alguns segundos...";
-
-      try {
-        const [ip, time, reach] = await Promise.all([
-          getIpInfo(),
-          getTimeDiff(),
-          testUrlReachability(targetUrl)
-        ]);
-
-        const device = getDeviceInfo();
-
-        const data = {
-          targetUrl,
-          device,
-          ip,
-          time,
-          reach
-        };
-
-        const text = formatResultAsText(data);
-        output.value = text;
-      } catch (e) {
-        output.value = "Erro ao executar diagnóstico: " + (e.message || String(e));
-      } finally {
-        runBtn.disabled = false;
-        runBtn.textContent = "Rodar diagnóstico";
-      }
-    }
-
-    runBtn.addEventListener("click", runDiagnostic);
-
-    copyBtn.addEventListener("click", async () => {
-      copyStatus.textContent = "";
-      try {
-        await navigator.clipboard.writeText(output.value || "");
-        copyStatus.textContent = "Resultado copiado. Envie esse texto por WhatsApp para a loja.";
-      } catch (e) {
-        copyStatus.textContent = "Não foi possível copiar automaticamente. Selecione e copie o texto manualmente.";
-      }
+        // adiciona timestamp para evitar cache
+        img.src = url + "/favicon.ico?ts=" + Date.now();
     });
-  </script>
+}
+
+/* ============================================================
+   TESTE DE HTTP/2 / HTTP/3 (QUIC)
+   ============================================================ */
+async function testProtocol(url){
+    let supportsH3 = false;
+    let supportsH2 = false;
+
+    try {
+        const r = await fetch(url, { method:"GET" });
+        const proto = r.httpVersion || "";
+        if (/3/.test(proto)) supportsH3 = true;
+        if (/2/.test(proto)) supportsH2 = true;
+    } catch(e){}
+
+    return { supportsH2, supportsH3 };
+}
+
+/* ============================================================
+   TESTE DE SNI (TLS Server Name Indication)
+   ============================================================ */
+async function testSNI(url){
+    try {
+        await fetch(url, { mode:"no-cors" });
+        return "OK (sem bloqueio SNI)";
+    } catch(e) {
+        return "Falhou — possível problema de SNI / filtragem HTTPS";
+    }
+}
+
+/* ============================================================
+   DNS FALLBACK
+   ============================================================ */
+async function testDNS(url){
+    try {
+        const r = await fetch("https://dns.google/resolve?name=" + new URL(url).hostname);
+        const json = await r.json();
+        return json.Answer ? json.Answer.map(a => a.data) : "Sem resposta";
+    } catch(e){
+        return "Falha ao consultar DNS";
+    }
+}
+
+/* ============================================================
+   TESTE DE ACESSO (handshake + fetch)
+   ============================================================ */
+async function testFetch(url){
+    try {
+        const start = performance.now();
+        await fetch(url, { mode:"no-cors" }); 
+        return {
+            ok: true,
+            ms: performance.now() - start
+        };
+    } catch(e){
+        return {
+            ok: false,
+            error: e.message
+        };
+    }
+}
+
+/* ============================================================
+   EXECUÇÃO PRINCIPAL DO DIAGNÓSTICO
+   ============================================================ */
+async function runDiagnostic(){
+    const url = document.getElementById("urlField").value.trim();
+    const resultBox = document.getElementById("result");
+
+    if (!url){
+        alert("Informe a URL da loja.");
+        return;
+    }
+
+    document.getElementById("runBtn").disabled = true;
+    resultBox.value = "Executando testes, aguarde...\n";
+
+    const browser = detectBrowser();
+    const os = detectOS();
+    const conn = detectConnectionType();
+    const ips = await getIPs();
+    const tls = await testTLS(url);
+    const protocol = await testProtocol(url);
+    const sni = await testSNI(url);
+    const dns = await testDNS(url);
+    const fetchTest = await testFetch(url);
+
+    let text = `
+=== DIAGNÓSTICO COMPLETO ===
+
+URL testada:
+${url}
+
+1) Navegador e dispositivo:
+ - Navegador: ${browser}
+ - Sistema operacional: ${os}
+ - Idioma: ${navigator.language}
+ - Online: ${navigator.onLine ? "SIM" : "NÃO"}
+ - Tipo de conexão: ${conn}
+
+2) Endereço de rede:
+ - IPv4: ${ips.ipv4}
+ - IPv6: ${ips.ipv6}
+
+3) Teste TLS/Handshake:
+ - Handshake HTTPS: ${tls.ok ? "OK" : "FALHOU"}
+ - Latência handshake: ${tls.ms}ms
+
+4) Protocolos suportados:
+ - HTTP/2: ${protocol.supportsH2 ? "SIM" : "NÃO"}
+ - HTTP/3 (QUIC): ${protocol.supportsH3 ? "SIM" : "NÃO"}
+
+5) SNI (Server Name Indication):
+ - Resultado: ${sni}
+
+6) DNS Resolve:
+ - Resposta DNS: ${Array.isArray(dns) ? dns.join(", ") : dns}
+
+7) Teste de acesso via Fetch:
+ - Conseguiu conectar: ${fetchTest.ok ? "SIM" : "NÃO"}
+ ${fetchTest.ok ? `- Latência: ${fetchTest.ms}ms` : `- Erro: ${fetchTest.error}`}
+
+=== FIM DO DIAGNÓSTICO ===
+`;
+
+    resultBox.value = text;
+    document.getElementById("runBtn").disabled = false;
+}
+
+/* ============================================================
+   BOTÕES
+   ============================================================ */
+document.getElementById("runBtn").addEventListener("click", runDiagnostic);
+
+document.getElementById("copyBtn").addEventListener("click", () => {
+    navigator.clipboard.writeText(resultBox.value);
+    document.getElementById("copyStatus").innerText = "Copiado!";
+});
+
+</script>
 </body>
 </html>
